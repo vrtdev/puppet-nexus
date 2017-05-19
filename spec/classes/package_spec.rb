@@ -111,6 +111,16 @@ describe 'nexus::package', :type => :class do
           )
         end
 
+        it 'should handle deb package' do
+          params.merge!(
+            {
+              'package_type' => 'deb'
+            }
+          )
+          should_not contain_wget__fetch('nexus-2.11.2-01-bundle.tar.gz')
+          should contain_package('nexus').with( { 'name' => 'nexus' } )
+        end
+
       end
 
     end
