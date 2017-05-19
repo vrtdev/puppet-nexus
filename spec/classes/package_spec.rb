@@ -25,6 +25,7 @@ describe 'nexus::package', :type => :class do
           'version'                       => '2.11.2',
           'download_folder'               => '/srv',
           'md5sum'                        => '',
+          'package_type'                  => 'tgz',
         }
       }
 
