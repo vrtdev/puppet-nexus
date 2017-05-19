@@ -43,6 +43,7 @@ class nexus::package (
   $nexus_selinux_ignore_defaults = $::nexus::nexus_selinux_ignore_defaults,
   $download_folder = $::nexus::download_folder,
   $md5sum = $::nexus::md5sum,
+  $package_type = $::nexus::package_type,
 ) {
 
   $nexus_home      = "${nexus_root}/${nexus_home_dir}"
@@ -60,78 +61,79 @@ class nexus::package (
   $dl_file         = "${download_folder}/${nexus_archive}"
   $nexus_home_real = "${nexus_root}/nexus${bundle_type}-${full_version}"
 
-  /*
-  # NOTE: When setting version to 'latest' the site redirects to the latest
-  # release. But, nexus-latest-bundle.tar.gz will already exist and
-  # therefore the exec will never be triggered.  In reality 'latest' will
-  # lock you to a version.
-  #
-  # NOTE:  I *think* this won't repeatedly download the file because it's
-  # linked to an exec resource which won't be realized if a directory
-  # already exists.
-  wget::fetch{ $nexus_archive:
-    source      => $download_url,
-    destination => $dl_file,
-    source_hash => $md5sum,
-    before      => Exec['nexus-untar'],
-  }
+  if ($package_type == 'tgz') {
+    # NOTE: When setting version to 'latest' the site redirects to the latest
+    # release. But, nexus-latest-bundle.tar.gz will already exist and
+    # therefore the exec will never be triggered.  In reality 'latest' will
+    # lock you to a version.
+    #
+    # NOTE:  I *think* this won't repeatedly download the file because it's
+    # linked to an exec resource which won't be realized if a directory
+    # already exists.
+    wget::fetch { $nexus_archive:
+      source      => $download_url,
+      destination => $dl_file,
+      source_hash => $md5sum,
+      before      => Exec['nexus-untar'],
+    }
 
-  exec{ 'nexus-untar':
-    command => "tar zxf ${download_folder}/${nexus_archive} --directory ${nexus_root}",
-    creates => $nexus_home_real,
-    path    => ['/bin','/usr/bin'],
-  }
+    exec { 'nexus-untar':
+      command => "tar zxf ${download_folder}/${nexus_archive} --directory ${nexus_root}",
+      creates => $nexus_home_real,
+      path    => ['/bin', '/usr/bin'],
+    }
 
-  # NOTE: $nexus_work_dir in later releases was moved to a directory not
-  # under the application.  This is why we do not make recursing optional
-  # for this resource but do for $nexus_work_dir.
-  file{ $nexus_home_real:
-    ensure                  => directory,
-    owner                   => $nexus_user,
-    group                   => $nexus_group,
-    recurse                 => true,
-    selinux_ignore_defaults => $nexus_selinux_ignore_defaults,
-    require                 => Exec[ 'nexus-untar']
-  }
-
-
-  # I have an EBS volume for $nexus_work_dir and mounting code in our tree
-  # creates this and results in a duplicate resource. -tmclaughlin
-  if $nexus_work_dir_manage == true {
-    file{ $nexus_work_dir:
+    # NOTE: $nexus_work_dir in later releases was moved to a directory not
+    # under the application.  This is why we do not make recursing optional
+    # for this resource but do for $nexus_work_dir.
+    file { $nexus_home_real:
       ensure                  => directory,
       owner                   => $nexus_user,
       group                   => $nexus_group,
-      recurse                 => $nexus_work_recurse,
+      recurse                 => true,
       selinux_ignore_defaults => $nexus_selinux_ignore_defaults,
       require                 => Exec[ 'nexus-untar']
     }
 
-    # Nexus 3 needs to have a nexus_work_dir/etc for the properties file
-    if $version !~ /\d.*/  /*
- or versioncmp($version, '3.1.0') >= 0 {
-      file { "${nexus_work_dir}/etc":
+
+    # I have an EBS volume for $nexus_work_dir and mounting code in our tree
+    # creates this and results in a duplicate resource. -tmclaughlin
+    if $nexus_work_dir_manage == true {
+      file { $nexus_work_dir:
         ensure                  => directory,
         owner                   => $nexus_user,
         group                   => $nexus_group,
         recurse                 => $nexus_work_recurse,
         selinux_ignore_defaults => $nexus_selinux_ignore_defaults,
+        require                 => Exec[ 'nexus-untar']
+      }
+
+      # Nexus 3 needs to have a nexus_work_dir/etc for the properties file
+      if $version !~ /\d.*/ or versioncmp($version, '3.1.0') >= 0 {
+        file { "${nexus_work_dir}/etc":
+          ensure                  => directory,
+          owner                   => $nexus_user,
+          group                   => $nexus_group,
+          recurse                 => $nexus_work_recurse,
+          selinux_ignore_defaults => $nexus_selinux_ignore_defaults,
+        }
       }
     }
-  }
-  file{ $nexus_home:
-    ensure  => link,
-    target  => $nexus_home_real,
-    require => Exec['nexus-untar']
-  }
-  */
-
-  package { 'nexus':
-    ensure => 'present',
+    file { $nexus_home:
+      ensure  => link,
+      target  => $nexus_home_real,
+      require => Exec['nexus-untar']
+    }
   }
 
-  file{ $nexus_home:
-    ensure  => link,
-    target  => $nexus_home_real,
+  if ($package_type == 'deb') {
+    package { 'nexus':
+      ensure => 'present',
+    }
+
+    file{ $nexus_home:
+      ensure => link,
+      target => $nexus_home_real,
+    }
   }
 }
