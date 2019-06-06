@@ -127,7 +127,7 @@ class nexus::package (
   */
 
   package { 'nexus':
-    ensure => 'present',
+    ensure => $full_version,
   }
 
   file{ $nexus_home:
