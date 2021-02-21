@@ -50,6 +50,7 @@ class nexus (
   $download_folder       = $nexus::params::download_folder,
   $manage_config         = $nexus::params::manage_config,
   $md5sum                = $nexus::params::md5sum,
+  $package_type          = $nexus::params::package_type,
 ) inherits nexus::params {
   include stdlib
 
@@ -114,6 +115,7 @@ class nexus (
     nexus_work_dir_manage => $nexus_work_dir_manage,
     nexus_work_recurse    => $nexus_work_recurse,
     md5sum                => $md5sum,
+    package_type          => $package_type,
     notify                => Class['nexus::service']
   }
 

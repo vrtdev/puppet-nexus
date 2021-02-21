@@ -25,6 +25,7 @@ describe 'nexus::package', :type => :class do
           'version'                       => '2.11.2',
           'download_folder'               => '/srv',
           'md5sum'                        => '',
+          'package_type'                  => 'tgz',
         }
       }
 
@@ -108,6 +109,16 @@ describe 'nexus::package', :type => :class do
             'creates' => '/srv/nexus-2.11.2-01',
             'path'    => [ '/bin', '/usr/bin' ],
           )
+        end
+
+        it 'should handle deb package' do
+          params.merge!(
+            {
+              'package_type' => 'deb'
+            }
+          )
+          should_not contain_wget__fetch('nexus-2.11.2-01-bundle.tar.gz')
+          should contain_package('nexus').with( { 'name' => 'nexus' } )
         end
 
       end

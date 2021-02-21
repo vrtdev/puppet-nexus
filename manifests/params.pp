@@ -42,4 +42,5 @@ class nexus::params {
   $download_folder               = '/srv'
   $manage_config                 = true
   $md5sum                        = undef
+  $package_type                  = 'tgz'
 }
